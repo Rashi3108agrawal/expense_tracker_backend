@@ -1,0 +1,9 @@
+sqlalchemy
+psycopg-binary
+python-dotenv
+pydantic[email]
+email-validator
+bcrypt
+passlib[bcrypt]
+argon2-cffi
+passlib[argon2]
