@@ -8,13 +8,22 @@ from datetime import datetime, timedelta
 from jose import jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError
+from dotenv import load_dotenv
+from app.models import Expense
+from app.schemas import ExpenseCreate
+from sqlalchemy import func, extract
+import os
 
 app = FastAPI()
 
+# load environment variables from .env
+load_dotenv()
+
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-SECRET_KEY = "supersecretkey"   # later move to .env
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# JWT settings loaded from environment (provide defaults)
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -119,4 +128,111 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         "name": current_user.name
     }
 
+@app.post("/expenses")
+def add_expense(
+    expense: ExpenseCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    new_expense = Expense(
+        title=expense.title,
+        amount=expense.amount,
+        category=expense.category,
+        user_id=current_user.id
+    )
 
+    db.add(new_expense)
+    db.commit()
+    db.refresh(new_expense)
+
+    return {"message": "Expense added successfully"}
+
+@app.get("/expenses")
+def get_expenses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    expenses = db.query(Expense).filter(
+        Expense.user_id == current_user.id
+    ).all()
+
+    return expenses
+
+@app.delete("/expenses/{expense_id}")
+def delete_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == current_user.id
+    ).first()
+
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    db.delete(expense)
+    db.commit()
+
+    return {"message": "Expense deleted"}
+
+@app.put("/expenses/{expense_id}")
+def update_expense(
+    expense_id: int,
+    expense: ExpenseCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == current_user["id"]
+    ).first()
+
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    db_expense.title = expense.title
+    db_expense.amount = expense.amount
+    db_expense.category = expense.category
+
+    db.commit()
+    db.refresh(db_expense)
+    return db_expense
+
+@app.get("/expenses/filter")
+def filter_expenses(
+    category: str | None = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Expense).filter(
+        Expense.user_id == current_user["id"]
+    )
+
+    if category:
+        query = query.filter(Expense.category == category)
+
+    return query.all()
+
+
+from sqlalchemy import func, extract
+
+@app.get("/expenses/summary/monthly")
+def monthly_summary(
+    year: int,
+    month: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    total = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+        Expense.user_id == current_user["id"],
+        extract("year", Expense.created_at) == year,
+        extract("month", Expense.created_at) == month
+    ).scalar()
+
+    return {
+        "year": year,
+        "month": month,
+        "total_expense": float(total)
+    }

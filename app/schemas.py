@@ -8,3 +8,8 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class ExpenseCreate(BaseModel):
+    title: str
+    amount: float
+    category: str
