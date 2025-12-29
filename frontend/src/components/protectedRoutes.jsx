@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (loading) return null;
-  return token ? children : <Navigate to="/login" />;
+  return token ? children : <Navigate to="/signup" />;
 };
 
 export default ProtectedRoute;

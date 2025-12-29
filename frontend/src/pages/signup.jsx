@@ -1,7 +1,11 @@
 import { useState } from "react";
-import api from "../api/api";   // axios instance
+import { useNavigate, Link } from "react-router-dom";
+import api from "../api/api";
 
-function Signup() {
+export default function Signup() {
+  const navigate = useNavigate();
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,17 +18,15 @@ function Signup() {
 
     try {
       await api.post("/signup", {
-        email: email,
-        password: password,
+        name,
+        email,
+        password,
       });
 
       alert("Signup successful! Please login.");
-      // optional: redirect to login
-      window.location.href = "/login";
+      navigate("/");
     } catch (err) {
-      setError(
-        err.response?.data?.detail || "Signup failed. Try again."
-      );
+      setError(err.response?.data?.detail || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -38,11 +40,21 @@ function Signup() {
 
       <form onSubmit={handleSubmit}>
         <div>
+          <label>Name</label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginTop: "10px" }}>
           <label>Email</label>
           <input
             type="email"
-            value={email}
             required
+            value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
@@ -51,8 +63,8 @@ function Signup() {
           <label>Password</label>
           <input
             type="password"
-            value={password}
             required
+            value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
@@ -65,8 +77,10 @@ function Signup() {
           {loading ? "Signing up..." : "Signup"}
         </button>
       </form>
+
+      <p style={{ marginTop: "15px" }}>
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
     </div>
   );
 }
-
-export default Signup;

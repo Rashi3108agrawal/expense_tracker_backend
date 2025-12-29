@@ -13,8 +13,17 @@ from app.models import Expense
 from app.schemas import ExpenseCreate
 from sqlalchemy import func, extract
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # load environment variables from .env
 load_dotenv()
@@ -181,12 +190,12 @@ def delete_expense(
 def update_expense(
     expense_id: int,
     expense: ExpenseCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     db_expense = db.query(Expense).filter(
         Expense.id == expense_id,
-        Expense.user_id == current_user["id"]
+        Expense.user_id == current_user.id
     ).first()
 
     if not db_expense:
@@ -203,11 +212,11 @@ def update_expense(
 @app.get("/expenses/filter")
 def filter_expenses(
     category: str | None = None,
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Expense).filter(
-        Expense.user_id == current_user["id"]
+        Expense.user_id == current_user.id
     )
 
     if category:
@@ -222,11 +231,11 @@ from sqlalchemy import func, extract
 def monthly_summary(
     year: int,
     month: int,
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     total = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
-        Expense.user_id == current_user["id"],
+        Expense.user_id == current_user.id,
         extract("year", Expense.created_at) == year,
         extract("month", Expense.created_at) == month
     ).scalar()

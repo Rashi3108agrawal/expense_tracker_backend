@@ -66,3 +66,18 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* dark mode override when .dark is added to <html> */
+.dark body {
+  background-color: #121212;
+  color: #e6eef8;
+}
+.dark button {
+  background-color: #1a1a1a;
+  color: #e6eef8;
+}
+.dark input, .dark select {
+  background-color: #222;
+  color: #e6eef8;
+  border: 1px solid #444;
+}

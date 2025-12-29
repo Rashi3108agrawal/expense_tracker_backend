@@ -1,16 +1,18 @@
 import api from "./api";
 
-export const login = async (email, password) => {
-  const params = new URLSearchParams();
-  params.append("username", email);   // IMPORTANT: username, not email
-  params.append("password", password);
+export const signup = async(data) => {
+  const res = await api.post("/signup", data);
+  localStorage.setItem("token", res.data.access_token);
+  return res.data;
+};
 
-  const response = await api.post("/login", params, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+export const login = async (email, password) => {
+  const res = await api.post("/login", {
+    email,
+    password,
   });
 
-  localStorage.setItem("token", response.data.access_token);
-  return response.data;
+  // store token
+  localStorage.setItem("token", res.data.access_token);
+  return res.data;
 };
