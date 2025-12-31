@@ -13,3 +13,7 @@ class ExpenseCreate(BaseModel):
     title: str
     amount: float
     category: str
+
+class BudgetCreate(BaseModel):
+    month: int
+    amount: float
